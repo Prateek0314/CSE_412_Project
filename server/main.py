@@ -23,16 +23,18 @@ def establishConnection():
 def get_info():
     try:
         parameters = request.json#Whatever the args that we want to call for the endpoints, creates a dict of the arguments
-        if 'customer_ID' not in parameters:
+        if 'Customer_ID' not in parameters:
             return jsonify({"error": "Missing required fields"}), 400
-        customerID = parameters['customer_ID']
+        customerID = parameters['Customer_ID']
         conn = establishConnection()
         cursor = conn.cursor()
-        cursor.execute(f'SELECT * FROM Customers WHERE customer_ID = %s;',(customerID))#This is how to execute sql commands
+        cursor.execute(f'SELECT * FROM Customers WHERE Customer_ID = %s;',(customerID))#This is how to execute sql commands
         data = cursor.fetchall()
+        cursor.execute(f'SELECT * FROM Transaction_Info WHERE Customer_ID = %s;',(customerID))
+        transaction_info = cursor.fetchall()
         cursor.close()
         conn.close()
-        return jsonify(data)
+        return jsonify([data,transaction_info])
     except Exception as e:
         return jsonify({'Exception' : e}), 500
 
@@ -69,7 +71,6 @@ def search():
         shop_request = request.json#Whatever the args that we want to call for the endpoints, creates a dict of the arguments
         if not (shop_request is None or 'Product_Category' in shop_request):
             return jsonify({"error": "Missing required fields"}), 400
-        
         conn = establishConnection()
         cursor = conn.cursor()
         if shop_request is None:
@@ -84,11 +85,29 @@ def search():
     except Exception as e:
         return jsonify({'Exception' : e}), 500
 
-#For getting coupons and checking out(removing from database and adding to the customer table)
-@app.route('/checkout', methods=['GET'])
+#For getting coupons
+@app.route('/fetchcoupons', methods=['GET'])
 def check_out():
     try:
         parameters = request.json#Whatever the args that we want to call for the endpoints, creates a dict of the arguments
+        conn = establishConnection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM Coupon WHERE Coupon_Status = TRUE;')#This is how to execute sql commands
+        data = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        return jsonify(data)
+    except Exception as e:
+        return jsonify({'Exception' : e}), 500     
+
+#checking out(removing from database and adding to the customer table)
+@app.route('/checkout', methods=['POST'])
+def check_out():
+    try:
+        transaction_info = request.json#Whatever the args that we want to call for the endpoints, creates a dict of the arguments
+        required_fields = ['Product_SKU','Coupon_Code','Tax_Pct','Purchased_Quantity']
+        if not all(field in transaction_info for field in required_fields):
+            return jsonify({"error": "Missing required fields"}), 400
         conn = establishConnection()
         cursor = conn.cursor()
         cursor.execute('SELECT * FROM Customers;')#This is how to execute sql commands
@@ -97,7 +116,7 @@ def check_out():
         conn.close()
         return jsonify(data)
     except Exception as e:
-        return jsonify({'Exception' : e}), 500      
+        return jsonify({'Exception' : e}), 500  
 
 #Get information about specific item
 @app.route('/item', methods=['GET'])
