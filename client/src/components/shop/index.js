@@ -86,7 +86,7 @@ export const Product = (props) => {
     };
 
     const handleAddToCart = () => {
-        addToCart(sku, itemQuantity);
+        addToCart(sku, itemQuantity, description, price);
     }
 
     return (
@@ -110,10 +110,10 @@ export const Product = (props) => {
             </CardContent>
 
             <CardActions sx={styles.cardActions}>
-                <IconButton color={color.tertiaryText} onClick={handleViewMore} aria-label="view info">
+                <IconButton sx={{ color: color.secondary }} onClick={handleViewMore} aria-label="view info">
                     <InfoIcon />
                 </IconButton>
-                <IconButton color={color.tertiaryText} onClick={handleAddToCart} aria-label="add to cart">
+                <IconButton sx={{ color: color.secondary }} onClick={handleAddToCart} aria-label="add to cart">
                     <AddShoppingCartIcon />
                 </IconButton>
             </CardActions>

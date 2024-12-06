@@ -1,6 +1,7 @@
 import { AppBar, Box, Button, darken, Toolbar, Typography } from "@mui/material"
 import { color } from "../../../theme";
 import { useUser } from "../../../context/UserContext";
+import Cart from "../cart";
 
 const styles = {
     appbar: {
@@ -19,12 +20,20 @@ const styles = {
         ml: 3,
         mr: 5
     },
+    spacer: {
+        flexGrow: 1
+    },
     button: {
         mr: 4,
         backgroundColor: color.primary,
         '&:hover': {
             backgroundColor: color.tertiaryText
         }
+    },
+    buttonContainer: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 2
     }
 };
 
@@ -35,11 +44,14 @@ export const Header = () => {
             <AppBar sx={styles.appbar}>
                 <Toolbar sx={styles.toolbar}>
                     <Typography variant='h4' sx={styles.title}>Shop</Typography>
-                    {user ? (
+
+                    {!user ? (
                         <>
-                        <Button variant="contained" sx={styles.button}>Profile</Button>
-                        <Button variant="contained" sx={styles.button}>Cart</Button>
-                        <Button variant="contained" sx={styles.button}>Checkout</Button>
+                        <Box sx={styles.buttonContainer}>
+                            <Button variant="contained" sx={styles.button}>Profile</Button>
+                        </Box>
+
+                        <Cart />
                         </>
                     ) : (
                         <Button variant="contained" sx={styles.button}>Log In</Button>
