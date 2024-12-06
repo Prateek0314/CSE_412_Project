@@ -1,10 +1,12 @@
 export const palette = {
     // Theme Colors
-    frenchGray: '#CACFD6',
-    azure: '#D6E5E3',
-    tiffanyBlue: '#9FD8CB',
-    hookersGreen: '#517664',
-    drabDarkBrown: '#2D3319',
+    gunmetal: '#202C39',
+    gunmetalLight: '#283845',
+    sage: '#B8B08D',
+    alabaster: '#E7E5D9',
+    peachYellow: '#F2D492',
+    parchment: '#FBF1DA',
+    atomicTangerine: '#F29559',
 
     // Greys
     white: '#FEFEFE',

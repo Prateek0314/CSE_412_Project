@@ -2,14 +2,14 @@ import { palette } from "./palette";
 
 export const color = {
     // Theme colors
-    primary: palette.hookersGreen,
-    secondary: palette.tiffanyBlue,
-    tertiaryText: palette.frenchGray,
+    primary: palette.gunmetal,
+    secondary: palette.atomicTangerine,
+    tertiaryText: palette.gunmetalLight,
 
     // Greys
-    bodyText: palette.black,
+    bodyText: palette.gunmetal,
     offWhite: palette.offWhite,
-    background: palette.azure,
+    background: palette.alabaster,
 
     // Semantics
     success: palette.green,
