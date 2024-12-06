@@ -1,7 +1,6 @@
 from flask import Flask, jsonify, request
 import psycopg2
 from psycopg2 import sql
-from psycopg2.extras import RealDictCursor
 import os
 from flask_cors import CORS
 
