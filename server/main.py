@@ -4,7 +4,6 @@ from psycopg2 import sql
 from psycopg2.extras import RealDictCursor
 import os
 from flask_cors import CORS
-from dotenv import load_dotenv
 
 app = Flask(__name__)
 CORS(app)   
@@ -23,12 +22,13 @@ def establishConnection():
 @app.route('/customer', methods=['GET'])
 def get_info():
     try:
-        parameters = request.args.to_dict()#Whatever the args that we want to call for the endpoints, creates a dict of the arguments
-        customerID = parameters['customerID']
-
+        parameters = request.json#Whatever the args that we want to call for the endpoints, creates a dict of the arguments
+        if 'customer_ID' not in parameters:
+            return jsonify({"error": "Missing required fields"}), 400
+        customerID = parameters['customer_ID']
         conn = establishConnection()
-        cursor = conn.cursor(cursor_factory=RealDictCursor)
-        cursor.execute(f'SELECT * FROM Customers WHERE customerID = %s;',(customerID))#This is how to execute sql commands
+        cursor = conn.cursor()
+        cursor.execute(f'SELECT * FROM Customers WHERE customer_ID = %s;',(customerID))#This is how to execute sql commands
         data = cursor.fetchall()
         cursor.close()
         conn.close()
@@ -40,14 +40,25 @@ def get_info():
 @app.route('/admin', methods=['POST'])
 def add_items():
     try:
-        parameters = request.args.to_dict()#Whatever the args that we want to call for the endpoints, creates a dict of the arguments
+        item_info = request.json#Whatever the args that we want to call for the endpoints, creates a dict of the arguments
+        required_fields = ['Product_SKU', 'Product_Description','Product_Category','Item_Price','Store_Quantity']
+        if not all(field in item_info for field in required_fields):
+            return jsonify({"error": "Missing required fields"}), 400
         conn = establishConnection()
-        cursor = conn.cursor(cursor_factory=RealDictCursor)
-        cursor.execute('SELECT * FROM Customers;')#This is how to execute sql commands
-        data = cursor.fetchall()
+        cursor = conn.cursor()
+        cursor.execute(''' INSERT INTO Product_Info (Product_SKU, Product_Description, Product_Category, Item_Price, Store_Quantity) VALUES (%s, %s, %s, %s, %s)''',
+            (
+                item_info['Product_SKU'],
+                item_info['Product_Description'],
+                item_info['Product_Category'],
+                item_info['Item_Price'],
+                item_info['Store_Quantity']
+            )
+        )
+        conn.commit()
         cursor.close()
         conn.close()
-        return jsonify(data)
+        return jsonify({"message": "Customer added successfully"}), 201
     except Exception as e:
         return jsonify({'Exception' : e}), 500
 
@@ -55,10 +66,17 @@ def add_items():
 @app.route('/shop', methods=['GET'])
 def search():
     try:
-        parameters = request.args.to_dict()#Whatever the args that we want to call for the endpoints, creates a dict of the arguments
+        shop_request = request.json#Whatever the args that we want to call for the endpoints, creates a dict of the arguments
+        if not (shop_request is None or 'Product_Category' in shop_request):
+            return jsonify({"error": "Missing required fields"}), 400
+        
         conn = establishConnection()
-        cursor = conn.cursor(cursor_factory=RealDictCursor)
-        cursor.execute('SELECT * FROM Customers;')#This is how to execute sql commands
+        cursor = conn.cursor()
+        if shop_request is None:
+            cursor.execute('SELECT * FROM Product_Info;')#This is how to execute sql commands
+        else:
+            product_category = shop_request['Product_Category']
+            cursor.execute('SELECT * FROM Product_Info WHERE Product_Category = %s;', product_category)#This is how to execute sql commands
         data = cursor.fetchall()
         cursor.close()
         conn.close()
@@ -70,9 +88,9 @@ def search():
 @app.route('/checkout', methods=['GET'])
 def check_out():
     try:
-        parameters = request.args.to_dict()#Whatever the args that we want to call for the endpoints, creates a dict of the arguments
+        parameters = request.json#Whatever the args that we want to call for the endpoints, creates a dict of the arguments
         conn = establishConnection()
-        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        cursor = conn.cursor()
         cursor.execute('SELECT * FROM Customers;')#This is how to execute sql commands
         data = cursor.fetchall()
         cursor.close()
@@ -85,10 +103,13 @@ def check_out():
 @app.route('/item', methods=['GET'])
 def get_item_info():
     try:
-        parameters = request.args.to_dict()#Whatever the args that we want to call for the endpoints, creates a dict of the arguments
+        item_request = request.json#Whatever the args that we want to call for the endpoints, creates a dict of the arguments        
+        if 'Product_SKU' not in item_request:
+            return jsonify({"error": "Missing required fields"}), 400
+        ProductSKU = item_request['Product_SKU']
         conn = establishConnection()
-        cursor = conn.cursor(cursor_factory=RealDictCursor)
-        cursor.execute('SELECT * FROM Customers;')#This is how to execute sql commands
+        cursor = conn.cursor()
+        cursor.execute(f'SELECT * FROM Product_Info WHERE Product_SKU = %s;',ProductSKU)#This is how to execute sql commands
         data = cursor.fetchall()
         cursor.close()
         conn.close()
