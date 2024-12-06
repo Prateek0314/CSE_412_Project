@@ -60,7 +60,7 @@ def add_items():
         conn.commit()
         cursor.close()
         conn.close()
-        return jsonify({"message": "Customer added successfully"}), 201
+        return jsonify({"message": "Product added successfully"}), 201
     except Exception as e:
         return jsonify({'Exception' : e}), 500
 
@@ -101,22 +101,66 @@ def check_out():
         return jsonify({'Exception' : e}), 500     
 
 #checking out(removing from database and adding to the customer table)
+#The front end will send a tuple of transactioninfo and a list of transactiondetails
 @app.route('/checkout', methods=['POST'])
 def check_out():
     try:
-        transaction_info = request.json#Whatever the args that we want to call for the endpoints, creates a dict of the arguments
-        required_fields = ['Product_SKU','Coupon_Code','Tax_Pct','Purchased_Quantity']
-        if not all(field in transaction_info for field in required_fields):
+        transaction_data = request.json
+        required_fields = ['Transaction_Info','Transaction_Detail']
+        if not all(field in transaction_data for field in required_fields):
             return jsonify({"error": "Missing required fields"}), 400
-        conn = establishConnection()
-        cursor = conn.cursor()
-        cursor.execute('SELECT * FROM Customers;')#This is how to execute sql commands
-        data = cursor.fetchall()
-        cursor.close()
-        conn.close()
-        return jsonify(data)
+        if not create_transaction(transaction_data['Transaction_Info']):
+            for field in transaction_data['Transaction_Detail']:
+                if create_details(field):
+                    return jsonify({"error": "Failed to add transaction details"}), 400
+        else:
+            return jsonify({"error": "Failed to add transaction info"}), 400
+        return jsonify({"message": "Transaction added successfully"}), 201
     except Exception as e:
         return jsonify({'Exception' : e}), 500  
+
+#Creates the transaction info
+def create_transaction(transaction_info):
+    required_fields = ['Transaction_ID','Customer_ID','Transaction_Date','Delivery_Charge','Products','Total_Price']
+    if not all(field in transaction_info for field in required_fields):
+        return True
+    conn = establishConnection()
+    cursor = conn.cursor()
+    cursor.execute(''' INSERT INTO Transaction_Info (Transaction_ID, Customer_ID, Transaction_Date, Delivery_Charge, Products, Total_Price) VALUES (%s, %s, %s, %s, %s,%s)''',
+        (
+            transaction_info['Transaction_ID'],
+            transaction_info['Customer_ID'],
+            transaction_info['Transaction_Date'],
+            transaction_info['Delivery_Charge'],
+            transaction_info['Products'],
+            transaction_info['Total_Price']
+        )
+    )
+    conn.commit()
+    cursor.close()
+    conn.close()
+    return False
+
+#Creates details for the created transaction
+def create_details(transaction_detail):
+    required_fields = ['Transaction_ID','Product_SKU','Coupon_Code','Tax_Pct','Purchased_Quantity']
+    if not all(field in transaction_detail for field in required_fields):
+        return True
+    conn = establishConnection()
+    cursor = conn.cursor()
+    cursor.execute(''' INSERT INTO Transaction_Detail (Transaction_ID, Product_SKU, Coupon_Code, Tax_Pct, Purchased_Quantity) VALUES (%s, %s, %s, %s, %s)''',
+        (
+            transaction_detail['Transaction_ID'],
+            transaction_detail['Product_SKU'],
+            transaction_detail['Coupon_Code'],
+            transaction_detail['Tax_Pct'],
+            transaction_detail['Purchased_Quantity']            
+        )
+    )
+    conn.commit()
+    cursor.close()
+    conn.close()
+    return False
 
 #Get information about specific item
 @app.route('/item', methods=['GET'])
