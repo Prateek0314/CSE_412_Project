@@ -4,7 +4,7 @@ import { RootNavigation } from './navigation/rootNavigation';
 import { color } from './theme';
 
 function App() {
-  const [bgColor, setBgColor] = useState(color.background);
+  const [bgColor,] = useState(color.background);
 
   useEffect(() => {
     document.body.style.backgroundColor = bgColor;

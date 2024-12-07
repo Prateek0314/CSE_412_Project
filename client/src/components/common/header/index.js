@@ -1,7 +1,8 @@
-import { AppBar, Box, Button, darken, Toolbar, Typography } from "@mui/material"
+import { AppBar, Box, Button, Toolbar, Typography } from "@mui/material"
 import { color } from "../../../theme";
 import { useUser } from "../../../context/UserContext";
 import Cart from "../cart";
+import { useNavigate } from "react-router-dom";
 
 const styles = {
     appbar: {
@@ -38,23 +39,48 @@ const styles = {
 };
 
 export const Header = () => {
-    const { user } = useUser();
+    const { user, logout } = useUser();
+    const navigate = useNavigate();
+
+    const handleLoginButton = (e) => {
+        navigate('/login');
+    };
+
+    const handleProfileButton = (e) => {
+        navigate('/profile');
+    };
+
+    const handleLogoutButton = (e) => {
+        logout();
+        navigate('/login');
+    };
+
     return (
         <Box>
             <AppBar sx={styles.appbar}>
                 <Toolbar sx={styles.toolbar}>
                     <Typography variant='h4' sx={styles.title}>Shop</Typography>
 
-                    {!user ? (
+                    {user ? (
                         <>
                         <Box sx={styles.buttonContainer}>
-                            <Button variant="contained" sx={styles.button}>Profile</Button>
+                            <Button variant="contained" sx={styles.button} onClick={handleProfileButton}>Profile</Button>
                         </Box>
 
                         <Cart />
+
+                        <Box sx={styles.buttonContainer}>
+                            <Button variant="contained" sx={styles.button} onClick={handleLogoutButton}>Logout</Button>
+                        </Box>
                         </>
                     ) : (
-                        <Button variant="contained" sx={styles.button}>Log In</Button>
+                        <Button
+                            variant="contained"
+                            sx={styles.button}
+                            onClick={handleLoginButton}
+                        >
+                            Log In
+                        </Button>
                     )}
                 </Toolbar>
             </AppBar>

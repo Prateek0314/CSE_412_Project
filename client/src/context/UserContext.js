@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState } from "react";
+import { useCart } from "./CartContext";
 
 const UserContext = createContext();
 
@@ -8,6 +9,7 @@ export const useUser = () => {
 
 export const UserProvider = ({ children }) => {
     const [user, setUser] = useState(null);
+    const { clearCart } = useCart();
 
     const login = (userData) => {
         setUser(userData);
@@ -15,6 +17,7 @@ export const UserProvider = ({ children }) => {
 
     const logout = () => {
         setUser(null);
+        clearCart();
     };
 
     return (

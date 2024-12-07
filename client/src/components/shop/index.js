@@ -8,7 +8,7 @@ import { useState } from "react";
 
 const styles = {
     card: {
-        maxWidth: 345,
+        width: 350,
         height: 250,
         display: 'flex',
         flexDirection: 'column',
@@ -86,17 +86,18 @@ export const Product = (props) => {
     };
 
     const handleAddToCart = () => {
-        addToCart(sku, itemQuantity, description, price);
+        addToCart(sku, description, itemQuantity, price);
     }
 
     return (
         <Card sx={styles.card}>
             <CardContent sx={styles.cardContent}>
                 <Typography variant="h6" component="div" sx={styles.skuText}>
-                    SKU: {sku}
+                    <strong>{description}</strong>
+
                 </Typography>
                 <Typography variant="body2" color={color.bodyText} sx={styles.text}>
-                    <strong>{description}</strong>
+                    <strong>SKU</strong>: {sku}
                 </Typography>
                 <Typography variant="body2" color={color.bodyText} sx={styles.text}>
                     <strong>Category: </strong>{category}

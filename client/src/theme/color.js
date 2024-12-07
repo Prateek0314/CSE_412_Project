@@ -8,6 +8,7 @@ export const color = {
 
     // Greys
     bodyText: palette.gunmetal,
+    white: palette.white,
     offWhite: palette.offWhite,
     background: palette.alabaster,
 
