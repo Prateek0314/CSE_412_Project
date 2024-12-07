@@ -20,7 +20,7 @@ def establishConnection():
 @app.route('/customer', methods=['GET'])
 def get_info():
     try:
-        parameters = request.get_json(silent=True)#Whatever the args that we want to call for the endpoints, creates a dict of the arguments
+        parameters = request.args.to_dict()#Whatever the args that we want to call for the endpoints, creates a dict of the arguments        
         if 'Customer_ID' not in parameters:
             return jsonify({"error": "Missing required fields"}), 400
         customerID = parameters['Customer_ID']
@@ -40,7 +40,7 @@ def get_info():
 @app.route('/admin', methods=['POST'])
 def add_items():
     try:
-        item_info = request.get_json(silent=True)#Whatever the args that we want to call for the endpoints, creates a dict of the arguments
+        item_info = request.args.to_dict()#Whatever the args that we want to call for the endpoints, creates a dict of the arguments
         required_fields_item = ['Product_SKU', 'Product_Description','Product_Category','Item_Price','Store_Quantity']
         required_fields_coupon = ['Coupon_Code', 'Coupon_Status','Discount_pct','Coupon_UsageLimit']
         if not all(field in item_info for field in required_fields_item) or not not all(field in item_info for field in required_fields_coupon):
@@ -78,12 +78,13 @@ def add_items():
 @app.route('/shop', methods=['GET'])
 def search():
     try:
-        shop_request = request.get_json(silent=True)#Whatever the args that we want to call for the endpoints, creates a dict of the arguments
-        if not (shop_request is None or 'Product_Category' in shop_request):
+        shop_request = request.args.to_dict()#Whatever the args that we want to call for the endpoints, creates a dict of the arguments
+        app.logger.debug(shop_request)
+        if not (len(shop_request) == 0 or 'Product_Category' in shop_request):
             return jsonify({"error": "Missing required fields"}), 400
         conn = establishConnection()
         cursor = conn.cursor()
-        if shop_request is None:
+        if len(shop_request) == 0:
             cursor.execute('SELECT * FROM Product_Info;')#This is how to execute sql commands
         else:
             product_category = shop_request['Product_Category']
@@ -99,7 +100,7 @@ def search():
 @app.route('/fetchcoupons', methods=['GET'])
 def fetch_coupons():
     try:
-        parameters = request.get_json(silent=True)#Whatever the args that we want to call for the endpoints, creates a dict of the arguments
+        parameters = request.args.to_dict()#Whatever the args that we want to call for the endpoints, creates a dict of the arguments
         conn = establishConnection()
         cursor = conn.cursor()
         cursor.execute('SELECT * FROM Coupon WHERE Coupon_Status = TRUE;')#This is how to execute sql commands
@@ -115,7 +116,7 @@ def fetch_coupons():
 @app.route('/checkout', methods=['POST'])
 def check_out():
     try:
-        transaction_data = request.get_json(silent=True)        
+        transaction_data = request.args.to_dict()        
         required_fields = ['Transaction_Info','Transaction_Detail']
         if transaction_data is None:
             return jsonify({"error": "Missing required fields"}), 400
@@ -181,7 +182,7 @@ def create_details(transaction_detail):
 @app.route('/item', methods=['GET'])
 def get_item_info():
     try:
-        item_request = request.get_json(silent=True)#Whatever the args that we want to call for the endpoints, creates a dict of the arguments        
+        item_request = request.args.to_dict()#Whatever the args that we want to call for the endpoints, creates a dict of the arguments        
         if 'Product_SKU' not in item_request:
             return jsonify({"error": "Missing required fields"}), 400
         ProductSKU = item_request['Product_SKU']
@@ -199,7 +200,7 @@ def get_item_info():
 def add_customer():
     try:
         #Getting customer info
-        customer_data = request.get_json(silent=True)
+        customer_data = request.args.to_dict()
         
         #Fields that are necessary to be filled for a customer to be added
         required_fields = ['Customer_ID', 'Gender', 'Location', 'Total_Spent', 'Tenure_Months']

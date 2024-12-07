@@ -30,11 +30,11 @@ export const ShopPage = () => {
             try {
                 const data = await getAllProducts();
                 const formattedProducts = data.map((product) => ({
-                    sku: product.Product_SKU,
-                    description: product.Product_Description,
-                    category: product.Product_Category,
-                    quantity: product.Quantity,
-                    price: product.Item_Price,
+                    sku: product[0],
+                    description: product[1],
+                    category: product[2],
+                    quantity: product[3],
+                    price: product[4],
                 }));
                 setProducts(formattedProducts);
                 setFilteredProducts(formattedProducts);
