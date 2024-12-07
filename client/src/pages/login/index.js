@@ -4,7 +4,7 @@ import { Header } from "../../components";
 import { color } from "../../theme";
 import { useUser } from "../../context/UserContext";
 import { useNavigate } from "react-router-dom";
-import PasswordField from "../../components/login";
+import { getCustomerInfo } from "../../services/api";
 
 const styles = {
     container: {
@@ -31,8 +31,7 @@ const styles = {
 };
 
 export const LoginPage = () => {
-    const [username, setUsername] = useState('');
-    const [password, setPassword] = useState('');
+    const [userID, setUserID] = useState('');
     const [error, setError] = useState('');
     const { user, login } = useUser();
     const navigate = useNavigate();
@@ -43,16 +42,19 @@ export const LoginPage = () => {
         }
     }, [user, navigate])
 
-    const handleLogin = () => {
-        const user = process.env.REACT_APP_USER;
-        const pass = process.env.REACT_APP_PASS;
-
-        if (username === user && password === pass) {
-            setError('');
-            login({ username });
-            navigate('/shop');
-        } else {
-            setError('Invalid username or password.');
+    const handleLogin = async () => {
+        try {
+            const customer = await getCustomerInfo(userID);
+            if (customer) {
+                setError('');
+                login({ userID: customer.Customer_ID }); // Set user details
+                navigate('/shop');
+            } else {
+                setError('Invalid user ID.');
+            }
+        } catch (error) {
+            console.error("Login failed:", error.message);
+            setError('Unable to log in. Please try again.');
         }
     };
 
@@ -64,11 +66,10 @@ export const LoginPage = () => {
                 <TextField
                     label="Username"
                     variant="outlined"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
+                    value={userID}
+                    onChange={(e) => setUserID(e.target.value)}
                     sx={styles.textField} 
                 />
-                <PasswordField password={password} setPassword={setPassword} />
                 {error && (
                     <Typography sx={styles.errorText}>{error}</Typography>
                 )}

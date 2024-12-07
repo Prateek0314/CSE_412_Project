@@ -1,54 +1,9 @@
 import { Box, Button, TextField, Typography } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
 import { Header, Product } from '../../components';
 import { Grid } from '@mui/system';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { color } from '../../theme';
-
-const products = [
-    {
-        sku: '12345',
-        description: 'Wireless Headphones',
-        category: 'Electronics',
-        quantity: 10,
-        price: 299.99,
-    },
-    {
-        sku: '67890',
-        description: 'Smartphone',
-        category: 'Electronics',
-        quantity: 15,
-        price: 799.99,
-    },
-    {
-        sku: '11223',
-        description: 'Office Chair',
-        category: 'Furniture',
-        quantity: 5,
-        price: 149.99,
-    },
-    {
-        sku: '44556',
-        description: '2-Slice Toaster',
-        category: 'Kitchen',
-        quantity: 8,
-        price: 29.99,
-    },
-    {
-        sku: '99887',
-        description: 'Bluetooth Speaker',
-        category: 'Electronics',
-        quantity: 20,
-        price: 49.99,
-    },
-    {
-        sku: '55667',
-        description: 'Knife Set',
-        category: 'Kitchen',
-        quantity: 12,
-        price: 79.99,
-    },
-];
+import { getAllProducts } from '../../services/api';
 
 const styles = {
     searchbox: {
@@ -66,10 +21,30 @@ const styles = {
 }
 
 export const ShopPage = () => {
-    const navigate = useNavigate();
-
     const [searchTerm, setSearchTerm] = useState('');
+    const [products, setProducts] = useState([]);
     const [filteredProducts, setFilteredProducts] = useState(products);
+
+    useEffect(() => {
+        const fetchProducts = async () => {
+            try {
+                const data = await getAllProducts();
+                const formattedProducts = data.map((product) => ({
+                    sku: product.Product_SKU,
+                    description: product.Product_Description,
+                    category: product.Product_Category,
+                    quantity: product.Quantity,
+                    price: product.Item_Price,
+                }));
+                setProducts(formattedProducts);
+                setFilteredProducts(formattedProducts);
+            } catch (error) {
+                console.error("Error fetching products: ", error.message);
+            }
+        };
+
+        fetchProducts();
+    }, []);
 
     const handleSearch = () => {
         const removeCaseSearch = searchTerm.toLowerCase();
