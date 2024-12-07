@@ -86,7 +86,7 @@ def search():
 
 #For getting coupons
 @app.route('/fetchcoupons', methods=['GET'])
-def check_out():
+def fetch_coupons():
     try:
         parameters = request.json#Whatever the args that we want to call for the endpoints, creates a dict of the arguments
         conn = establishConnection()
