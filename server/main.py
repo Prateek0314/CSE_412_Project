@@ -32,7 +32,7 @@ def get_info():
         transaction_info = cursor.fetchall()
         cursor.close()
         conn.close()
-        return jsonify([data,transaction_info])
+        return {"Data":data[0],"History":transaction_info}
     except Exception as e:
         return jsonify({'Exception' : e}), 500
 
