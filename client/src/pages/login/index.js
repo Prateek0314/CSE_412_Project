@@ -44,7 +44,7 @@ export const LoginPage = () => {
 
     const handleLogin = async () => {
         try {
-            const customer = await getCustomerInfo(userID);
+            const customer = await getCustomerInfo({ Customer_ID: userID });
             if (customer) {
                 setError('');
                 login({ userID: customer.Customer_ID }); // Set user details
