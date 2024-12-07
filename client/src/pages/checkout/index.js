@@ -9,11 +9,7 @@ import { Header } from '../../components';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '../../context/UserContext';
 import { color } from '../../theme';
-
-const coupons = [
-    { code: "SAVE10", discount: 10 },
-    { code: "SAVE20", discount: 20 }
-];
+import { checkout, fetchCoupons } from '../../services/api';
 
 const styles = {
     container: {
@@ -108,6 +104,24 @@ export const CheckoutPage = () => {
     const [taxPct] = useState(8.5);
     const [deliveryCharges] = useState(10.99);
     const [finalPrice, setFinalPrice] = useState(0);
+    const [coupons, setCoupons] = useState([]);
+
+    useEffect(() => {
+        const fetchAvailableCoupons = async () => {
+            try {
+                const data = await fetchCoupons();
+                const formattedCoupons = data.map((coupon) => ({
+                    code: coupon.Coupon_Code,
+                    discount: coupon.Discount_pct
+                }));
+                setCoupons(formattedCoupons);
+            } catch (error) {
+                console.error("Error fetching coupons: ", error.message);
+            }
+        };
+
+        fetchAvailableCoupons();
+    }, []);
 
     const calculateTotal = () => {
         const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
@@ -131,7 +145,7 @@ export const CheckoutPage = () => {
         setSelectedCoupon(null);
     };
 
-    const handleCheckout = () => {
+    const handleCheckout = async () => {
         const transactionID = `TXN-${Date.now()}`;
 
         const transactionDetail = cart.map((item) => ({
@@ -149,9 +163,17 @@ export const CheckoutPage = () => {
             transactionDetail
         };
 
-        navigate('/transaction-complete', { state: { transaction: transactionInfo } });
+        const payload = { Transaction_Info: transactionInfo };
 
-        clearCart();
+        try {
+            const response = await checkout(payload);
+            console.log("Checkout successful: ", response);
+            clearCart();
+            navigate('/transaction-complete', { state: { transaction: transactionInfo } });
+        } catch (error) {
+            console.error("Error during checkout: ", error.message);
+            alert("Checkout failed. Please ttry again.");
+        }
     };
 
     return (

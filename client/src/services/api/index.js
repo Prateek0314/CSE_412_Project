@@ -6,7 +6,7 @@ export const getCustomerInfo = async (customerID) => {
         const response = await createAxiosInstance({
             url: "/customer",
             method: "GET",
-            params: { Customer_ID: customerID },
+            params: { userID: customerID.Customer_ID },
         });
         return response.data;
     } catch (error) {
