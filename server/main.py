@@ -42,19 +42,18 @@ def add_items():
     try:
         item_info = request.get_json(silent=True)#Whatever the args that we want to call for the endpoints, creates a dict of the arguments
         required_fields_item = ['Product_SKU', 'Product_Description','Product_Category','Item_Price','Store_Quantity']
-        required_fields_coupon = ['Coupon_Code', 'Coupon_Status','Discount_pct','Coupon_Expiry','Coupon_UsageLimit']
+        required_fields_coupon = ['Coupon_Code', 'Coupon_Status','Discount_pct','Coupon_UsageLimit']
         if not all(field in item_info for field in required_fields_item) or not not all(field in item_info for field in required_fields_coupon):
             return jsonify({"error": "Missing required fields"}), 400
         
         conn = establishConnection()
         cursor = conn.cursor()
         if 'Coupon_Code' in item_info:
-            cursor.execute(''' INSERT INTO Coupon (Coupon_Code, Coupon_Status, Discount_pct, Coupon_Expiry, Coupon_UsageLimit) VALUES (%s, %s, %s, %s, %s)''',
+            cursor.execute(''' INSERT INTO Coupon (Coupon_Code, Coupon_Status, Discount_pct, Coupon_UsageLimit) VALUES (%s, %s, %s, %s)''',
                 (
                     item_info['Coupon_Code'],
                     item_info['Coupon_Status'],
                     item_info['Discount_pct'],
-                    item_info['Coupon_Expiry'],
                     item_info['Coupon_UsageLimit']
                 )
             )
@@ -116,8 +115,10 @@ def fetch_coupons():
 @app.route('/checkout', methods=['POST'])
 def check_out():
     try:
-        transaction_data = request.get_json(silent=True)
+        transaction_data = request.get_json(silent=True)        
         required_fields = ['Transaction_Info','Transaction_Detail']
+        if transaction_data is None:
+            return jsonify({"error": "Missing required fields"}), 400
         if not all(field in transaction_data for field in required_fields):
             return jsonify({"error": "Missing required fields"}), 400
         if not create_transaction(transaction_data['Transaction_Info']):
@@ -132,19 +133,21 @@ def check_out():
 
 #Creates the transaction info
 def create_transaction(transaction_info):
-    required_fields = ['Transaction_ID','Customer_ID','Transaction_Date','Delivery_Charge','Products','Total_Price']
-    if not all(field in transaction_info for field in required_fields):
+    required_fields = ['Transaction_ID','Customer_ID','Transaction_Date','Delivery_Charge','Coupon_Code','Tax_Pct','Products','Total_Price']    
+    if not all(field in transaction_info for field in required_fields):        
         return True
     conn = establishConnection()
     cursor = conn.cursor()
     products = transaction_info['Products']    
     products = "{" + ",".join(products) + "}"
-    cursor.execute(''' INSERT INTO Transaction_Info (Transaction_ID, Customer_ID, Transaction_Date, Delivery_Charge, Products, Total_Price) VALUES (%s, %s, %s, %s, %s,%s)''',
+    cursor.execute(''' INSERT INTO Transaction_Info (Transaction_ID, Customer_ID, Transaction_Date, Delivery_Charge, Coupon_Code, Tax_Pct, Products, Total_Price) VALUES (%s, %s, %s, %s, %s,%s,%s,%s)''',
         (
             transaction_info['Transaction_ID'],
             transaction_info['Customer_ID'],
             transaction_info['Transaction_Date'],
             transaction_info['Delivery_Charge'],
+            transaction_info['Coupon_Code'],
+            transaction_info['Tax_Pct'],
             products,
             transaction_info['Total_Price']
         )
@@ -156,17 +159,16 @@ def create_transaction(transaction_info):
 
 #Creates details for the created transaction
 def create_details(transaction_detail):
-    required_fields = ['Transaction_ID','Product_SKU','Coupon_Code','Tax_Pct','Purchased_Quantity']
+    required_fields = ['Transaction_ID','Product_SKU','Purchased_Quantity']
     if not all(field in transaction_detail for field in required_fields):
+        app.logger.debug(f"Received JSON")
         return True
     conn = establishConnection()
     cursor = conn.cursor()
-    cursor.execute(''' INSERT INTO Transaction_Detail (Transaction_ID, Product_SKU, Coupon_Code, Tax_Pct, Purchased_Quantity) VALUES (%s, %s, %s, %s, %s)''',
+    cursor.execute(''' INSERT INTO Transaction_Detail (Transaction_ID, Product_SKU, Purchased_Quantity) VALUES (%s, %s, %s)''',
         (
             transaction_detail['Transaction_ID'],
             transaction_detail['Product_SKU'],
-            transaction_detail['Coupon_Code'],
-            transaction_detail['Tax_Pct'],
             transaction_detail['Purchased_Quantity']            
         )
     )
