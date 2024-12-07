@@ -12,7 +12,6 @@ def establishConnection():
         host = os.getenv('host'),
         database = os.getenv('name'),
         user = os.getenv('user'),
-        password = os.getenv('password'),
         port = os.getenv('port')        
     )
     return conn
@@ -21,15 +20,15 @@ def establishConnection():
 @app.route('/customer', methods=['GET'])
 def get_info():
     try:
-        parameters = request.json#Whatever the args that we want to call for the endpoints, creates a dict of the arguments
+        parameters = request.get_json(silent=True)#Whatever the args that we want to call for the endpoints, creates a dict of the arguments
         if 'Customer_ID' not in parameters:
             return jsonify({"error": "Missing required fields"}), 400
         customerID = parameters['Customer_ID']
         conn = establishConnection()
         cursor = conn.cursor()
-        cursor.execute(f'SELECT * FROM Customers WHERE Customer_ID = %s;',(customerID))#This is how to execute sql commands
+        cursor.execute('SELECT * FROM Customer_Info WHERE Customer_ID = %s;',(customerID,))#This is how to execute sql commands
         data = cursor.fetchall()
-        cursor.execute(f'SELECT * FROM Transaction_Info WHERE Customer_ID = %s;',(customerID))
+        cursor.execute('SELECT * FROM Transaction_Info WHERE Customer_ID = %s;',(customerID,))
         transaction_info = cursor.fetchall()
         cursor.close()
         conn.close()
@@ -41,21 +40,33 @@ def get_info():
 @app.route('/admin', methods=['POST'])
 def add_items():
     try:
-        item_info = request.json#Whatever the args that we want to call for the endpoints, creates a dict of the arguments
-        required_fields = ['Product_SKU', 'Product_Description','Product_Category','Item_Price','Store_Quantity']
-        if not all(field in item_info for field in required_fields):
+        item_info = request.get_json(silent=True)#Whatever the args that we want to call for the endpoints, creates a dict of the arguments
+        required_fields_item = ['Product_SKU', 'Product_Description','Product_Category','Item_Price','Store_Quantity']
+        required_fields_coupon = ['Coupon_Code', 'Coupon_Status','Discount_pct','Coupon_UsageLimit']
+        if not all(field in item_info for field in required_fields_item) or not not all(field in item_info for field in required_fields_coupon):
             return jsonify({"error": "Missing required fields"}), 400
+        
         conn = establishConnection()
         cursor = conn.cursor()
-        cursor.execute(''' INSERT INTO Product_Info (Product_SKU, Product_Description, Product_Category, Item_Price, Store_Quantity) VALUES (%s, %s, %s, %s, %s)''',
-            (
-                item_info['Product_SKU'],
-                item_info['Product_Description'],
-                item_info['Product_Category'],
-                item_info['Item_Price'],
-                item_info['Store_Quantity']
+        if 'Coupon_Code' in item_info:
+            cursor.execute(''' INSERT INTO Coupon (Coupon_Code, Coupon_Status, Discount_pct, Coupon_UsageLimit) VALUES (%s, %s, %s, %s)''',
+                (
+                    item_info['Coupon_Code'],
+                    item_info['Coupon_Status'],
+                    item_info['Discount_pct'],
+                    item_info['Coupon_UsageLimit']
+                )
             )
-        )
+        else:
+            cursor.execute(''' INSERT INTO Product_Info (Product_SKU, Product_Description, Product_Category, Item_Price, Store_Quantity) VALUES (%s, %s, %s, %s, %s)''',
+                (
+                    item_info['Product_SKU'],
+                    item_info['Product_Description'],
+                    item_info['Product_Category'],
+                    item_info['Item_Price'],
+                    item_info['Store_Quantity']
+                )
+            )
         conn.commit()
         cursor.close()
         conn.close()
@@ -67,7 +78,7 @@ def add_items():
 @app.route('/shop', methods=['GET'])
 def search():
     try:
-        shop_request = request.json#Whatever the args that we want to call for the endpoints, creates a dict of the arguments
+        shop_request = request.get_json(silent=True)#Whatever the args that we want to call for the endpoints, creates a dict of the arguments
         if not (shop_request is None or 'Product_Category' in shop_request):
             return jsonify({"error": "Missing required fields"}), 400
         conn = establishConnection()
@@ -76,7 +87,7 @@ def search():
             cursor.execute('SELECT * FROM Product_Info;')#This is how to execute sql commands
         else:
             product_category = shop_request['Product_Category']
-            cursor.execute('SELECT * FROM Product_Info WHERE Product_Category = %s;', product_category)#This is how to execute sql commands
+            cursor.execute('SELECT * FROM Product_Info WHERE Product_Category = %s;', (product_category,))#This is how to execute sql commands
         data = cursor.fetchall()
         cursor.close()
         conn.close()
@@ -86,9 +97,9 @@ def search():
 
 #For getting coupons
 @app.route('/fetchcoupons', methods=['GET'])
-def check_out():
+def fetch_coupons():
     try:
-        parameters = request.json#Whatever the args that we want to call for the endpoints, creates a dict of the arguments
+        parameters = request.get_json(silent=True)#Whatever the args that we want to call for the endpoints, creates a dict of the arguments
         conn = establishConnection()
         cursor = conn.cursor()
         cursor.execute('SELECT * FROM Coupon WHERE Coupon_Status = TRUE;')#This is how to execute sql commands
@@ -104,8 +115,10 @@ def check_out():
 @app.route('/checkout', methods=['POST'])
 def check_out():
     try:
-        transaction_data = request.json
+        transaction_data = request.get_json(silent=True)        
         required_fields = ['Transaction_Info','Transaction_Detail']
+        if transaction_data is None:
+            return jsonify({"error": "Missing required fields"}), 400
         if not all(field in transaction_data for field in required_fields):
             return jsonify({"error": "Missing required fields"}), 400
         if not create_transaction(transaction_data['Transaction_Info']):
@@ -120,18 +133,22 @@ def check_out():
 
 #Creates the transaction info
 def create_transaction(transaction_info):
-    required_fields = ['Transaction_ID','Customer_ID','Transaction_Date','Delivery_Charge','Products','Total_Price']
-    if not all(field in transaction_info for field in required_fields):
+    required_fields = ['Transaction_ID','Customer_ID','Transaction_Date','Delivery_Charge','Coupon_Code','Tax_Pct','Products','Total_Price']    
+    if not all(field in transaction_info for field in required_fields):        
         return True
     conn = establishConnection()
     cursor = conn.cursor()
-    cursor.execute(''' INSERT INTO Transaction_Info (Transaction_ID, Customer_ID, Transaction_Date, Delivery_Charge, Products, Total_Price) VALUES (%s, %s, %s, %s, %s,%s)''',
+    products = transaction_info['Products']    
+    products = "{" + ",".join(products) + "}"
+    cursor.execute(''' INSERT INTO Transaction_Info (Transaction_ID, Customer_ID, Transaction_Date, Delivery_Charge, Coupon_Code, Tax_Pct, Products, Total_Price) VALUES (%s, %s, %s, %s, %s,%s,%s,%s)''',
         (
             transaction_info['Transaction_ID'],
             transaction_info['Customer_ID'],
             transaction_info['Transaction_Date'],
             transaction_info['Delivery_Charge'],
-            transaction_info['Products'],
+            transaction_info['Coupon_Code'],
+            transaction_info['Tax_Pct'],
+            products,
             transaction_info['Total_Price']
         )
     )
@@ -142,17 +159,16 @@ def create_transaction(transaction_info):
 
 #Creates details for the created transaction
 def create_details(transaction_detail):
-    required_fields = ['Transaction_ID','Product_SKU','Coupon_Code','Tax_Pct','Purchased_Quantity']
+    required_fields = ['Transaction_ID','Product_SKU','Purchased_Quantity']
     if not all(field in transaction_detail for field in required_fields):
+        app.logger.debug(f"Received JSON")
         return True
     conn = establishConnection()
     cursor = conn.cursor()
-    cursor.execute(''' INSERT INTO Transaction_Detail (Transaction_ID, Product_SKU, Coupon_Code, Tax_Pct, Purchased_Quantity) VALUES (%s, %s, %s, %s, %s)''',
+    cursor.execute(''' INSERT INTO Transaction_Detail (Transaction_ID, Product_SKU, Purchased_Quantity) VALUES (%s, %s, %s)''',
         (
             transaction_detail['Transaction_ID'],
             transaction_detail['Product_SKU'],
-            transaction_detail['Coupon_Code'],
-            transaction_detail['Tax_Pct'],
             transaction_detail['Purchased_Quantity']            
         )
     )
@@ -165,13 +181,13 @@ def create_details(transaction_detail):
 @app.route('/item', methods=['GET'])
 def get_item_info():
     try:
-        item_request = request.json#Whatever the args that we want to call for the endpoints, creates a dict of the arguments        
+        item_request = request.get_json(silent=True)#Whatever the args that we want to call for the endpoints, creates a dict of the arguments        
         if 'Product_SKU' not in item_request:
             return jsonify({"error": "Missing required fields"}), 400
         ProductSKU = item_request['Product_SKU']
         conn = establishConnection()
         cursor = conn.cursor()
-        cursor.execute(f'SELECT * FROM Product_Info WHERE Product_SKU = %s;',ProductSKU)#This is how to execute sql commands
+        cursor.execute('SELECT * FROM Product_Info WHERE Product_SKU = %s;',(ProductSKU,))#This is how to execute sql commands
         data = cursor.fetchall()
         cursor.close()
         conn.close()
@@ -183,7 +199,7 @@ def get_item_info():
 def add_customer():
     try:
         #Getting customer info
-        customer_data = request.json
+        customer_data = request.get_json(silent=True)
         
         #Fields that are necessary to be filled for a customer to be added
         required_fields = ['Customer_ID', 'Gender', 'Location', 'Total_Spent', 'Tenure_Months']
@@ -213,7 +229,7 @@ def add_customer():
 @app.route('/transaction', methods=['PUT'])
 def update_transaction():
     try:
-        transaction_data = request.json
+        transaction_data = request.get_json(silent=True)
         
         #Extracting transaction info and updates from payload
         transaction_id = transaction_data.get('Transaction_ID')
